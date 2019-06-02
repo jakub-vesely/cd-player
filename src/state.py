@@ -3,7 +3,7 @@ class State():
         self.signal_strength = 0
         self.is_bluetooth_available = False
 
-        self.folder_path = "c:/"
+        self.folder_path = "/"
         self.folder_content = []
         self.folder_index = 0
         #self.is_cd_folder = False

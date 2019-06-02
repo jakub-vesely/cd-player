@@ -11,7 +11,7 @@ from src.system.player import Player
 from src.system.timer import Timer
 from src.graphics.screen import Screen
 from src.state import State
-
+from src.system.wifi_linux import WifiLinux
 
 class Controller():
     queue_sleep_time = 0.1
@@ -23,7 +23,9 @@ class Controller():
         self.screen = Screen()
         self.state = State()
         if use_hat:
-            pass
+            from src.system.hat_io import HatIo
+            self.io = HatIo(self.stop_event, self._key_pressed, self._close)
+
             #from src.system. import HatDisplay
             #from src.system.raspberry_hat.hat_keyboard import HatKeyboard
             #self.display = HatDisplay(self.stop_event, self.screen.image)
@@ -101,6 +103,7 @@ class Controller():
         self.state.folder_content = os.listdir(self.state.folder_path)
         #self.state.folder_content = ["Track1", "Track2", "Track3", "Track4", "Track5", "Track6",]
         self.state.screen_list_length = min(self.state.screen_list_max_length, len(self.state.folder_content))
+        self._process_wifi()
         return True
 
     def _adjust_screen_list(self):
@@ -145,9 +148,19 @@ class Controller():
     def _perform_initial_procedure(self):
         self.request_queue.put((self._initialize_state,))
 
+    def _process_wifi(self):
+        strength = WifiLinux().get_strength()
+        if strength > 0.67:
+            self.state.signal_strength = 3
+        elif strength > 0.34:
+            self.state.signal_strength = 2
+        elif strength > 0:
+            self.state.signal_strength = 1
+        else:
+            self.state.signal_strength = 0
+
     def start(self):
         self._perform_initial_procedure()
-
         change_performed = False
 
         while True:

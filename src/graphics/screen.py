@@ -50,9 +50,11 @@ class Screen():
 
     def _draw_text(self, x, y, text, color, alignment):
         #font = ImageFont.truetype("AGENCYR.TTF", self.text_size * self.multiplier, encoding="unic")
-        font = ImageFont.truetype("ARIALN.TTF", self.text_size * self.multiplier, encoding="unic")
-
-        font = ImageFont.truetype("arial.ttf", self.text_size * self.multiplier, encoding="unic")
+        try:
+            #font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed.ttf", self.text_size * self.multiplier, encoding="unic")
+            font = ImageFont.truetype("DejaVuSansCondensed.ttf", self.text_size * self.multiplier, encoding="unic")
+        except OSError:
+            font = ImageFont.truetype("ARIALN.TTF", self.text_size * self.multiplier, encoding="unic")
         x, y = self._multiply((x ,y))
         if alignment == self.text_alignment_right:
             width, height = self.draw.textsize(text, font=font)
