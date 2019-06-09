@@ -24,7 +24,7 @@ class Screen():
 
     progress_text_offset_x = 8
     progress_text_offset_y = 4
-
+    progress_text_color = (0xC6, 0x04, 0x3C)
     progress_line_offset_x = 10
     progress_line_offset_y = 28
     progress_line_width = 1.5
@@ -49,12 +49,7 @@ class Screen():
         self.draw.rectangle(self._multiply((x1, y1, x2, y2)), fill_color, border_color)
 
     def _draw_text(self, x, y, text, color, alignment):
-        #font = ImageFont.truetype("AGENCYR.TTF", self.text_size * self.multiplier, encoding="unic")
-        try:
-            #font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed.ttf", self.text_size * self.multiplier, encoding="unic")
-            font = ImageFont.truetype("DejaVuSansCondensed.ttf", self.text_size * self.multiplier, encoding="unic")
-        except OSError:
-            font = ImageFont.truetype("ARIALN.TTF", self.text_size * self.multiplier, encoding="unic")
+        font = ImageFont.truetype("DejaVuSansCondensed.ttf", self.text_size * self.multiplier, encoding="unic")
         x, y = self._multiply((x ,y))
         if alignment == self.text_alignment_right:
             width, height = self.draw.textsize(text, font=font)
@@ -124,7 +119,7 @@ class Screen():
 
         self._draw_item_label(y, label, self.list_text_color_selected if selected else self.list_text_color_normal)
 
-    def _draw_header(self, signal_strength, is_bluetooth_available, interpret, album):
+    def _draw_header(self, signal_strength, is_bluetooth_connected, interpret, album):
         height = self.list_item_height
         if interpret:
             height += self.list_item_height + self.list_item_separator_height
@@ -133,7 +128,7 @@ class Screen():
         self._draw_rectangle(0, 0, self.width -1, height, self.header_background_color)
 
         self._draw_wifi(3, 3, signal_strength)
-        self._draw_bluetooth(110, 3, is_bluetooth_available)
+        self._draw_bluetooth(110, 3, is_bluetooth_connected)
 
         y_start =  self.list_item_height
         if interpret:
@@ -155,14 +150,14 @@ class Screen():
             self.progress_text_offset_x,
             y + self.progress_text_offset_y,
             current_time,
-            self.list_text_color_normal,
+            self.progress_text_color,
             self.text_alignment_left
         )
         self._draw_text(
             self.width - self.progress_text_offset_x,
             y + self.progress_text_offset_y,
             end_time,
-            self.list_text_color_normal,
+            self.progress_text_color,
             self.text_alignment_right
         )
         self._draw_line(
@@ -195,12 +190,13 @@ class Screen():
             self.progress_pointer_color,
         )
 
+
     def render(self, state):
         self._draw_rectangle(0,0, self.width, self.height, self.screen_background_color) #it is 1 pixel higher to be compleatelly cleaned - there was fragments because of antialiasing
-        header_height = self._draw_header(state.signal_strength, state.is_bluetooth_available, state.header_line1, state.header_line2)
+        header_height = self._draw_header(state.signal_strength, state.is_bluetooth_connected, state.header_line1, state.header_line2)
         list_end_y = self._draw_list_view(state, header_height + self.list_item_separator_height * 2) # to be separation more seeable
         if state.is_playing:
-            self._draw_playing_progress(list_end_y, "01:01", "10:20", 1.0)
+            self._draw_playing_progress(list_end_y, state.current_playing_time, state.total_playing_time, state.playing_ratio)
         out_image = self.image.resize((self.width, self.height), resample=Image.ANTIALIAS)
         return out_image
 

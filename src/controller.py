@@ -1,19 +1,26 @@
 import os
 import logging
 import sys
-import time
 from queue import Queue
-from threading import Event
+from threading import Event, Timer
 
 from src.system.cd_info import CdInfo
 from src.system.io_base import IoBase
 from src.system.player import Player
-from src.system.timer import Timer
 from src.graphics.screen import Screen
 from src.state import State
-from src.system.wifi_linux import WifiLinux
+if sys.platform.startswith("win"):
+    from src.system.win_wifi import WinWifi as Wifi
+    from src.system.win_bluetooth import WinBluettot as Bluetooth
+else:
+    from src.system.linux_wifi import LinuxWifi as Wifi
+    from src.system.linux_bluetooth import LinuxBluettot as Bluetooth
 
 class Controller():
+    connectivity_timeout_multiplier = 2
+    playing_progress_multiplier = 1
+    tenth_scheduler_timeout = 0.5
+    tenth_scheduler_counter = 0
     queue_sleep_time = 0.1
 
     def __init__(self, use_hat):
@@ -22,20 +29,32 @@ class Controller():
         self.request_queue = Queue() #queue of two tuples where the first element is method and the rest are the method's arguments
         self.screen = Screen()
         self.state = State()
+        self.wifi =  Wifi()
+        self.bluetooth = Bluetooth()
+        self.tenth_scheduler_timer = Timer(self.tenth_scheduler_timeout, self._process_tenth_scheduler_timeout)
+        self.player = Player(self.stop_event, self._playing_time_changed, self._playing_filished)
         if use_hat:
             from src.system.hat_io import HatIo
             self.io = HatIo(self.stop_event, self._key_pressed, self._close)
-
-            #from src.system. import HatDisplay
-            #from src.system.raspberry_hat.hat_keyboard import HatKeyboard
-            #self.display = HatDisplay(self.stop_event, self.screen.image)
-            #self.keyboard = HatKeyboard()
         else:
             from src.system.desktop_io import DesktopIo
             self.io = DesktopIo(self.stop_event, self._key_pressed, self._close, self.screen.image)
 
-        # self.cd_info = CdInfo()
-        # self.player = Player()
+    def _playing_filished(self):
+        self.request_queue.put((self._stop_playing, ))
+
+    def _playing_time_changed(self, current_time, total_time):
+        self.request_queue.put((self._change_playing_time, current_time, total_time))
+
+    def _get_time_string(self, sec):
+        minutes = int(sec / 60)
+        return "{:02d}:{:02d}".format(minutes, (sec%(minutes*60) if minutes else sec))
+
+    def _change_playing_time(self, current_time, total_time):
+        self.state.current_playing_time = self._get_time_string(current_time)
+        self.state.total_playing_time = self._get_time_string(total_time)
+        self.state.playing_ratio = current_time / total_time if total_time else 0
+        return True
 
     def _key_pressed(self, key_code):
         if key_code == IoBase.key_up:
@@ -43,11 +62,13 @@ class Controller():
         elif key_code == IoBase.key_down:
             self.request_queue.put((self._process_key_down,)) #must be called indirectly to be processed in main thread
         elif key_code == IoBase.key_select:
-            self.request_queue.put((self._update_folder_data, ("Ja do lesa nepojedu", "Bezi liska k taboru"), ("Song1", "Song2", "Song3", "Song4", "Song5", "Song6")))
+            self.request_queue.put((self._start_playing,))
         elif key_code == IoBase.key_left:
             self.request_queue.put((self._process_key_left,))
         elif key_code == IoBase.key_right:
             self.request_queue.put((self._process_key_right,))
+        elif key_code == IoBase.key_back:
+            self.request_queue.put((self._process_key_back,))
 
     def _close(self):
         self.request_queue.put((self._terminate,)) #must be called indirectly to be processed in main thread
@@ -58,21 +79,39 @@ class Controller():
         return False
 
     def _stop_playing(self):
+        self.player.stop_if_playing()
         self.state.is_playing = False
-        self._adjust_screen_list()
-
-
-    def _start_playing(self):
-        self.state.is_playing = True
-        self.state.screen_list_length = 1
+        self._set_screen_list_length()
         self._adjust_screen_list()
         return True
 
+    def _start_playing(self):
+        path = self.state.folder_path + "/" + self.state.folder_content[self.state.folder_index]
+        if not os.path.isfile(path):
+            return False #dir is not playable
+
+        self.player.stop_if_playing()
+        self.state.is_playing = True
+        self._set_screen_list_length()
+        self._adjust_screen_list()
+        self.player.play(path)
+        return True
+
     def _process_key_left(self):
-        return self._start_playing()
+        if self.state.is_playing:
+            value = int(self.state.playing_ratio * 100) - 10
+            self.player.move(value if value  > 0 else 0)
+            return False
+
+        return self._go_to_upper_folder()
 
     def _process_key_right(self):
-        return self._start_playing()
+        if self.state.is_playing:
+            value = int(self.state.playing_ratio * 100) + 10
+            self.player.move(value if value < 100 else 100)
+            return False
+
+        return self._go_to_subfolder()
 
     def _process_key_up(self):
         if self.state.folder_index == 0:
@@ -91,19 +130,42 @@ class Controller():
         return True
 
     def _process_key_select(self):
-        pass
+        return self._start_playing()
+
+    def _change_folder(self, new_path):
+        self.state.folder_path = new_path
+        self.state.folder_content = os.listdir(new_path)
+        self.state.folder_index = 0
+        self.state.screen_list_start = 0
+        self.state.screen_list_index = 0
+        self.state.screen_list_length = self.state.screen_list_max_length
+
     def _process_key_back(self):
-        pass
+        self._stop_playing()
+        return True
+        #self.request_queue.put((self._update_folder_data, ("Ja do lesa nepojedu", "Bezi liska k taboru"), ("Song1", "Song2", "Song3", "Song4", "Song5", "Song6")))
 
     def _go_to_subfolder(self):
-        self.state.got_to_subfolder_request()
+        subfolder = self.state.folder_path + "/" + self.state.folder_content[self.state.folder_index]
+        if not os.path.isdir(subfolder):
+            return False
+        self._change_folder(subfolder)
+        return True
 
+    def _go_to_upper_folder(self):
+        if self.state.folder_path == self.state.home_folder:
+            return False
+        self._change_folder(os.path.split(self.state.folder_path)[0])
+        return True
+
+    def _set_screen_list_length(self):
+        max_lngth = self.state.screen_list_max_length - 2 if self.state.is_playing else self.state.screen_list_max_length
+        self.state.screen_list_length = min(max_lngth, len(self.state.folder_content))
 
     def _initialize_state(self):
         self.state.folder_content = os.listdir(self.state.folder_path)
         #self.state.folder_content = ["Track1", "Track2", "Track3", "Track4", "Track5", "Track6",]
-        self.state.screen_list_length = min(self.state.screen_list_max_length, len(self.state.folder_content))
-        self._process_wifi()
+        self._set_screen_list_length()
         return True
 
     def _adjust_screen_list(self):
@@ -134,7 +196,7 @@ class Controller():
 
         self.state.folder_content = content
 
-        self.state.screen_list_length = min(self.state.screen_list_max_length, len(self.state.folder_content))
+        self._set_screen_list_length()
         if header and header[0]:
             self.state.header_line1 = header[0]
             self.state.screen_list_length -= 1
@@ -148,21 +210,49 @@ class Controller():
     def _perform_initial_procedure(self):
         self.request_queue.put((self._initialize_state,))
 
+    def _set_signnal_strength(self, signal_strength):
+        if signal_strength != self.state.signal_strength:
+            self.state.signal_strength = signal_strength
+            return True
+        return False
+
     def _process_wifi(self):
-        strength = WifiLinux().get_strength()
+        strength = self.wifi.get_strength()
         if strength > 0.67:
-            self.state.signal_strength = 3
+            signal_strength = 3
         elif strength > 0.34:
-            self.state.signal_strength = 2
+            signal_strength = 2
         elif strength > 0:
-            self.state.signal_strength = 1
+            signal_strength = 1
         else:
-            self.state.signal_strength = 0
+            signal_strength = 0
+        self.request_queue.put((self._set_signnal_strength, signal_strength))
+
+    def _set_bluetooth_state(self, is_connected):
+        if is_connected != self.state.is_bluetooth_connected:
+            self.state.is_bluetooth_connected = is_connected
+            return True
+        return False
+
+    def _process_blutooth(self):
+        self.request_queue.put((self._set_bluetooth_state, self.bluetooth.is_connected()))
+
+    def _process_tenth_scheduler_timeout(self):
+        if self.tenth_scheduler_counter % self.connectivity_timeout_multiplier == 0:
+            self._process_wifi()
+            self._process_blutooth()
+
+        if self.state.is_playing and self.tenth_scheduler_counter % self.playing_progress_multiplier == 0:
+            self.player.ask_fort_time()
+
+        self.tenth_scheduler_timer = Timer(self.tenth_scheduler_timeout, self._process_tenth_scheduler_timeout)
+        self.tenth_scheduler_timer.start()
+        self.tenth_scheduler_counter += 1
 
     def start(self):
         self._perform_initial_procedure()
         change_performed = False
-
+        self.tenth_scheduler_timer.start()
         while True:
             request = self.request_queue.get(True, None)
             request_method = request[0]
@@ -170,6 +260,7 @@ class Controller():
             change_performed |= request_method(*request_arguments)
 
             if self.stop_event.isSet():
+                self.tenth_scheduler_timer.cancel()
                 break
 
             if self.request_queue.empty() and change_performed:

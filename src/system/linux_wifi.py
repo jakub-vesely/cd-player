@@ -1,7 +1,7 @@
-from subprocess import *
+from subprocess import Popen,PIPE
 from src.system.wifi_base import WifiBase
 
-class WifiLinux(WifiBase):
+class LinuxWifi(WifiBase):
     def get_strength(self):
         shell_cmd = 'iwconfig | grep Link'
         proc = Popen(shell_cmd, shell=True, stdout=PIPE, stderr=PIPE)

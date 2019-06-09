@@ -1,9 +1,12 @@
+from os.path import expanduser
+
 class State():
     def __init__(self):
         self.signal_strength = 0
-        self.is_bluetooth_available = False
+        self.is_bluetooth_connected = False
 
-        self.folder_path = "/"
+        self.home_folder = expanduser("~") + "/Music"
+        self.folder_path = self.home_folder
         self.folder_content = []
         self.folder_index = 0
         #self.is_cd_folder = False
@@ -17,27 +20,6 @@ class State():
         self.screen_list_index = 0 #position in on-screen list from start
 
         self.is_playing = False
-
-    def move_down_request(self):
-        return False
-
-    def move_up_request(self):
-        return False
-
-    def got_to_upper_folder_request(self):
-        return False
-
-    def got_to_subfolder_request(self):
-        return False
-
-    def play_request(self):
-        return False
-
-    def stop_request(self):
-        return False
-
-    def folder_content_change_request(self, new_content):
-        return False
-
-    def playing_progress_change_request(self, new_state):
-        return False
+        self.current_playing_time = ""
+        self.total_playing_time = ""
+        self.playing_ratio = 0
