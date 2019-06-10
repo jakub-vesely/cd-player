@@ -146,6 +146,9 @@ class Controller():
         #self.request_queue.put((self._update_folder_data, ("Ja do lesa nepojedu", "Bezi liska k taboru"), ("Song1", "Song2", "Song3", "Song4", "Song5", "Song6")))
 
     def _go_to_subfolder(self):
+        #print(self.state.folder_path)
+        #print(self.state.folder_index)
+        #print(self.state.folder_content)
         subfolder = self.state.folder_path + "/" + self.state.folder_content[self.state.folder_index]
         if not os.path.isdir(subfolder):
             return False

@@ -23,6 +23,7 @@ class HatIo(IoBase):
         self._init_button(self.joystick_left, self.joystick_left_pressed)
         self._init_button(self.joystick_right, self.joystick_right_pressed)
         self._init_button(self.joystick_press, self.joystick_press_pressed)
+        self._init_button(self.key1, self.key1_pressed)
 
     def _init_button(self, pin, method):
         GPIO.setup(pin, GPIO.IN, GPIO.PUD_UP)
@@ -42,6 +43,10 @@ class HatIo(IoBase):
 
     def joystick_press_pressed(self, arg):
         self.keyboard_callback(self.key_select)
+
+    def key1_pressed(self, arg):
+        self.keyboard_callback(self.key_back)
+
     def bitblt(self, image):
         self.lcd.LCD_ShowImage(image,0, 0)
 
