@@ -9,7 +9,7 @@ class State():
         self.folder_path = self.home_folder
         self.folder_content = []
         self.folder_index = 0
-        #self.is_cd_folder = False
+        self.is_cd_folder = False
 
         self.header_line1 = ""
         self.header_line2 = ""

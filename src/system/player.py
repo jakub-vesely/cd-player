@@ -1,10 +1,11 @@
 import logging
 from subprocess import Popen, PIPE, STDOUT
 from threading import Event, Thread
+import time
 
 class Player():
-    ans_time_pos_porefix = "ANS_time_pos="
-    ans_length_prefix = "ANS_length="
+    ans_time_pos_porefix = "ANS_TIME_POSITION="
+    ans_length_prefix = "ANS_LENGTH="
     player_executable = "mplayer"
     def __init__(self, stop_event, playing_time_callback, playing_filished_callback):
         self.stop_event = stop_event
@@ -29,6 +30,7 @@ class Player():
         return int(parts[0])
 
     def _output_processor(self):
+        print (f"output_processor:{(self.stop_event.isSet(), self.stop_listening_event.isSet())}")
         while not self.stop_event.isSet() and not self.stop_listening_event.isSet():
             line =str(self.mplayer.stdout.readline(), "ascii")
             logging.info(f"mplayer: {line}")
@@ -49,19 +51,24 @@ class Player():
                     self.total_time = new_total_time
                     self.playing_time_callback(self.current_time, self.total_time)
 
-    def play(self, path):
-        self.mplayer = Popen(
-            [self.player_executable, "-slave", "-quiet", path],
-            bufsize=100,
-            stdin=PIPE,
-            stdout=PIPE,
-            stderr=STDOUT
-        )
+    def _play(self, commands):
+        parameters = [self.player_executable, "-slave", "-quiet"]
+        parameters += commands
+        self.mplayer = Popen(parameters, bufsize=100, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         self.current_time = 0
         self.total_time = 0
         self.playing_time_callback(self.current_time, self.total_time)
+        self.stop_listening_event.clear()
         self.listening_thread = Thread(target=self._output_processor, args=[])
         self.listening_thread.start()
+
+    def play(self, arg, is_cd_track):
+        
+        if is_cd_track:
+            track_nr = arg+1 #if arg else -1 #when there is 0 is played whole CD 
+            self._play(("-cdrom-device", "/dev/cdrom", f"cdda://{track_nr}"))
+        else:
+            self._play((arg,))
 
     def stop_if_playing(self):
         if self.listening_thread:
@@ -78,5 +85,5 @@ class Player():
 
     def ask_fort_time(self):
         if self.mplayer:
-            self._write_to_mplayer(b'get_property length\n')
-            self._write_to_mplayer(b'get_property time_pos\n')
+            self._write_to_mplayer(b'get_time_length\n')
+            self._write_to_mplayer(b'get_time_pos\n')

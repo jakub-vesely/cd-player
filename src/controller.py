@@ -30,9 +30,11 @@ class Controller():
         self.screen = Screen()
         self.state = State()
         self.wifi =  Wifi()
+        self.cd_info= CdInfo()
         self.bluetooth = Bluetooth()
         self.tenth_scheduler_timer = Timer(self.tenth_scheduler_timeout, self._process_tenth_scheduler_timeout)
         self.player = Player(self.stop_event, self._playing_time_changed, self._playing_filished)
+
         if use_hat:
             from src.system.hat_io import HatIo
             self.io = HatIo(self.stop_event, self._key_pressed, self._close)
@@ -86,15 +88,18 @@ class Controller():
         return True
 
     def _start_playing(self):
-        path = self.state.folder_path + "/" + self.state.folder_content[self.state.folder_index]
-        if not os.path.isfile(path):
-            return False #dir is not playable
+        if self.state.is_cd_folder:
+            arg = self.state.folder_index
+        else:
+            arg = self.state.folder_path + "/" + self.state.folder_content[self.state.folder_index]
+            if not os.path.isfile(arg):
+                return False #dir is not playable
 
         self.player.stop_if_playing()
         self.state.is_playing = True
         self._set_screen_list_length()
         self._adjust_screen_list()
-        self.player.play(path)
+        self.player.play(arg, self.state.is_cd_folder)
         return True
 
     def _process_key_left(self):
@@ -166,7 +171,13 @@ class Controller():
         self.state.screen_list_length = min(max_lngth, len(self.state.folder_content))
 
     def _initialize_state(self):
-        self.state.folder_content = os.listdir(self.state.folder_path)
+        cd_track_count =  self.cd_info.get_track_count()
+        self.state.is_cd_folder = cd_track_count > 0
+        if self.state.is_cd_folder:
+            for i in range(0, cd_track_count):
+                self.state.folder_content.append(f"Track{i+1}")
+        else:
+            self.state.folder_content = os.listdir(self.state.folder_path)
         #self.state.folder_content = ["Track1", "Track2", "Track3", "Track4", "Track5", "Track6",]
         self._set_screen_list_length()
         return True
