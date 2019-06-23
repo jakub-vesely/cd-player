@@ -45,9 +45,10 @@ class WidgetBase():
         self.imageDraw.text((x, y), text, font=font, fill=color)
 
 class HeaderWidgetBase(WidgetBase):
-    background_color = (0x66, 0x66, 0x66)
-    active_color = (0xff, 0xff, 0xff)
-    inactive_color = (0x80, 0x80, 0x80)
+    background_color = (0x6A, 0x58, 0x01)
+    inactive_color = (0x8A, 0x7E, 0x35)
+    active_color = (0xFF, 0xFF, 0xFF)
+
 
     def __init__(self, imageDraw):
         super().__init__(imageDraw)
@@ -202,7 +203,7 @@ class ListView(WidgetBase):
         super().__init__(imageDraw)
         self.width = width
 
-    list_item_color = (0xC6, 0x04, 0x3C)
+    list_item_color = (0x5E, 0x00, 0x1E)
     list_item_offset_x = 2
     list_item_height = 20
     list_item_radius = 4
@@ -243,21 +244,25 @@ class ListView(WidgetBase):
 
 
 class PlayingProgress(WidgetBase):
-    text_offset_x = 8
-    text_offset_y = 4
-    text_color = (0xC6, 0x04, 0x3C)
-    line_offset_x = 10
-    line_offset_y = 28
+    text_offset_x = 9
+    text_offset_y = 5
+    text_color = (0x6A, 0x58, 0x01)
+    line_offset_x = 12
+    line_offset_y = 29
     line_width = 1.5
-    line_color = (0x00, 0x00, 0x00)
-    pointer_color = (0xC6, 0x04, 0x3C)
+    line_color = (0x6A, 0x58, 0x01)
+    pointer_color = (0xDC, 0xB7, 0x04)
+    background_color =  (0xF8, 0xEC, 0xB3)
     pointer_size = 12
 
-    def __init__(self, imageDraw, width):
+    def __init__(self, imageDraw, width, height):
         super().__init__(imageDraw)
         self.width = width
+        self.height = height
 
     def draw(self, y, current_time, end_time, ratio):
+        self._draw_rounded_rectangle(1, y + 1, self.width - 2, self.height - 2, 5, self.line_color)
+        self._draw_rounded_rectangle(2.5, y + 2.5, self.width - 3.5, self.height - 3.5, 4.5, self.background_color)
         self._draw_text(
                 self.text_offset_x,
                 y + self.text_offset_y,
@@ -313,7 +318,7 @@ class Screen(WidgetBase):
 
         self.header = Header(self.imageDraw, self.width)
         self.list_view = ListView(self.imageDraw, self.width)
-        self.playing_progress = PlayingProgress(self.imageDraw, self.width)
+        self.playing_progress = PlayingProgress(self.imageDraw, self.width, self.height)
 
     def render(self, state):
         self._draw_rectangle(0, 0, self.width, self.height, self.screen_background_color) #it is 1 pixel higher to be completely cleaned - there was fragments because of antialiasing
@@ -321,7 +326,8 @@ class Screen(WidgetBase):
         repeate = state.playing_mode in (PlayingMode.repeat_song, PlayingMode.to_end_from_first)
         one = state.playing_mode in (PlayingMode.one_song, PlayingMode.repeat_song)
         header_height = self.header.draw_header(
-            state.signal_strength, state.is_bluetooth_connected, state.header_line1, state.header_line2, repeate, one)
+                state.signal_strength, state.is_bluetooth_connected, state.header_line1, state.header_line2, repeate, one
+        )
         list_end_y = self.list_view.draw(state, header_height + ListView.list_item_separator_height * 2) # to be separation more seeable
         if state.is_playing:
             self.playing_progress.draw(list_end_y, state.current_playing_time, state.total_playing_time, state.playing_ratio)
