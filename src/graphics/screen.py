@@ -7,6 +7,12 @@ class WidgetBase():
     multiplier = 2
     text_size = 14
 
+    color1_darkest = (0x35, 0x69, 0x01)
+    color1_dark = (0x4E, 0x7A, 0x21)
+    color1_mid = (0x54, 0xA4, 0x02)
+    color1_light = (0xC9, 0xEB, 0xA6)
+    color2 = (0xA0, 0x02, 0x39)
+
     def __init__(self, imageDraw):
         self.imageDraw = imageDraw
 
@@ -45,8 +51,8 @@ class WidgetBase():
         self.imageDraw.text((x, y), text, font=font, fill=color)
 
 class HeaderWidgetBase(WidgetBase):
-    background_color = (0x6A, 0x58, 0x01)
-    inactive_color = (0x8A, 0x7E, 0x35)
+    background_color = WidgetBase.color1_darkest
+    inactive_color = WidgetBase.color1_dark
     active_color = (0xFF, 0xFF, 0xFF)
 
 
@@ -203,7 +209,7 @@ class ListView(WidgetBase):
         super().__init__(imageDraw)
         self.width = width
 
-    list_item_color = (0x5E, 0x00, 0x1E)
+    list_item_color = WidgetBase.color2
     list_item_offset_x = 2
     list_item_height = 20
     list_item_radius = 4
@@ -246,13 +252,13 @@ class ListView(WidgetBase):
 class PlayingProgress(WidgetBase):
     text_offset_x = 9
     text_offset_y = 5
-    text_color = (0x6A, 0x58, 0x01)
+    text_color = WidgetBase.color1_darkest
     line_offset_x = 12
     line_offset_y = 29
     line_width = 1.5
-    line_color = (0x6A, 0x58, 0x01)
-    pointer_color = (0xDC, 0xB7, 0x04)
-    background_color =  (0xF8, 0xEC, 0xB3)
+    line_color = WidgetBase.color1_darkest
+    background_color =  WidgetBase.color1_light
+    pointer_color = WidgetBase.color1_mid
     pointer_size = 12
 
     def __init__(self, imageDraw, width, height):
