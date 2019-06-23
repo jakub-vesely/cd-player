@@ -1,3 +1,4 @@
+import logging
 import time
 from threading import Thread, Event, Lock
 import tkinter as tk
@@ -43,7 +44,7 @@ class DesktopIo(IoBase):
             return
 
         if self.redraw.isSet():
-            print("redraw")
+            logging.debug("redraw")
             self.tkimage.paste(self.image)
             self.redraw.clear()
         self.root.after(100, self._on_update)

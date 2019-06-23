@@ -1,9 +1,6 @@
 from subprocess import Popen, PIPE, STDOUT
 
-class CdInfo():
-    def __init__(self):
-        pass
-
+class LinuxCdInfo():
     def _get_disk_id(src):
         subprocess = Popen(["cd-discid"], stdout=PIPE)
         return str( subprocess.communicate()[0], "ascii")

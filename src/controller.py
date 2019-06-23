@@ -4,15 +4,16 @@ import sys
 from queue import Queue
 from threading import Event, Timer
 
-from src.system.cd_info import CdInfo
 from src.system.io_base import IoBase
 from src.system.player import Player
 from src.graphics.screen import Screen
-from src.state import State
+from src.state import State, PlayingMode
 if sys.platform.startswith("win"):
+    from src.system.win_cd_info import WinCdInfo as CdInfo
     from src.system.win_wifi import WinWifi as Wifi
     from src.system.win_bluetooth import WinBluettot as Bluetooth
 else:
+    from src.system.linux_cd_info import LinuxCdInfo as CdInfo
     from src.system.linux_wifi import LinuxWifi as Wifi
     from src.system.linux_bluetooth import LinuxBluettot as Bluetooth
 
@@ -29,8 +30,8 @@ class Controller():
         self.request_queue = Queue() #queue of two tuples where the first element is method and the rest are the method's arguments
         self.screen = Screen()
         self.state = State()
-        self.wifi =  Wifi()
-        self.cd_info= CdInfo()
+        self.wifi = Wifi()
+        self.cd_info = CdInfo()
         self.bluetooth = Bluetooth()
         self.tenth_scheduler_timer = Timer(self.tenth_scheduler_timeout, self._process_tenth_scheduler_timeout)
         self.player = Player(self.stop_event, self._playing_time_changed, self._playing_filished)
@@ -44,6 +45,7 @@ class Controller():
 
     def _playing_filished(self):
         self.request_queue.put((self._stop_playing, ))
+        self.request_queue.put((self._move_to_next_and_play,))
 
     def _playing_time_changed(self, current_time, total_time):
         self.request_queue.put((self._change_playing_time, current_time, total_time))
@@ -62,7 +64,7 @@ class Controller():
         if key_code == IoBase.key_up:
             self.request_queue.put((self._process_key_up,)) #must be called indirectly to be processed in main thread
         elif key_code == IoBase.key_down:
-            self.request_queue.put((self._process_key_down,)) #must be called indirectly to be processed in main thread
+            self.request_queue.put((self._go_to_next_item,)) #must be called indirectly to be processed in main thread
         elif key_code == IoBase.key_select:
             self.request_queue.put((self._start_playing,))
         elif key_code == IoBase.key_left:
@@ -71,6 +73,8 @@ class Controller():
             self.request_queue.put((self._process_key_right,))
         elif key_code == IoBase.key_back:
             self.request_queue.put((self._process_key_back,))
+        elif key_code == IoBase.key_m:
+            self.request_queue.put((self._process_key_m,))
 
     def _close(self):
         self.request_queue.put((self._terminate,)) #must be called indirectly to be processed in main thread
@@ -86,6 +90,19 @@ class Controller():
         self._set_screen_list_length()
         self._adjust_screen_list()
         return True
+
+    def _move_to_next_and_play(self):
+        if self.state.playing_mode == PlayingMode.one_song:
+            return False #one song has been played
+        elif self.state.playing_mode != PlayingMode.repeat_song:
+            if len(self.state.folder_content) == self.state.folder_index + 1:
+                if self.state.playing_mode == PlayingMode.to_end_from_first:
+                    self._go_to_first_item()
+                else:
+                    return False #nothing to do last song has been played
+            else:
+                self._go_to_next_item()
+        return self._start_playing()
 
     def _start_playing(self):
         if self.state.is_cd_folder:
@@ -126,7 +143,7 @@ class Controller():
         self._adjust_screen_list()
         return True
 
-    def _process_key_down(self):
+    def _go_to_next_item(self):
         if self.state.folder_index + 1 == len(self.state.folder_content):
             return False#I'm on the end nothing to do
         self.state.folder_index += 1
@@ -137,13 +154,20 @@ class Controller():
     def _process_key_select(self):
         return self._start_playing()
 
-    def _change_folder(self, new_path):
-        self.state.folder_path = new_path
-        self.state.folder_content = os.listdir(new_path)
+    def _go_to_first_item(self):
         self.state.folder_index = 0
         self.state.screen_list_start = 0
         self.state.screen_list_index = 0
+
+    def _change_folder(self, new_path):
+        self.state.folder_path = new_path
+        self.state.folder_content = os.listdir(new_path)
+        self._go_to_first_item()
         self.state.screen_list_length = self.state.screen_list_max_length
+
+    def _process_key_m(self):
+        self.state.playing_mode = PlayingMode.move(self.state.playing_mode)
+        return True
 
     def _process_key_back(self):
         self._stop_playing()
@@ -151,9 +175,6 @@ class Controller():
         #self.request_queue.put((self._update_folder_data, ("Ja do lesa nepojedu", "Bezi liska k taboru"), ("Song1", "Song2", "Song3", "Song4", "Song5", "Song6")))
 
     def _go_to_subfolder(self):
-        #print(self.state.folder_path)
-        #print(self.state.folder_index)
-        #print(self.state.folder_content)
         subfolder = self.state.folder_path + "/" + self.state.folder_content[self.state.folder_index]
         if not os.path.isdir(subfolder):
             return False

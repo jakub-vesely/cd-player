@@ -30,10 +30,9 @@ class Player():
         return int(parts[0])
 
     def _output_processor(self):
-        print (f"output_processor:{(self.stop_event.isSet(), self.stop_listening_event.isSet())}")
         while not self.stop_event.isSet() and not self.stop_listening_event.isSet():
             line =str(self.mplayer.stdout.readline(), "ascii")
-            logging.info(f"mplayer: {line}")
+            logging.debug(f"mplayer: {line}")
             if line.startswith('Exiting... (End of file)'):
                 self.mplayer = None
                 self.listening_thread = None
@@ -54,7 +53,7 @@ class Player():
     def _play(self, commands):
         parameters = [self.player_executable, "-slave", "-quiet"]
         parameters += commands
-        self.mplayer = Popen(parameters, bufsize=100, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+        self.mplayer = Popen(parameters, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         self.current_time = 0
         self.total_time = 0
         self.playing_time_callback(self.current_time, self.total_time)
@@ -63,9 +62,9 @@ class Player():
         self.listening_thread.start()
 
     def play(self, arg, is_cd_track):
-        
+
         if is_cd_track:
-            track_nr = arg+1 #if arg else -1 #when there is 0 is played whole CD 
+            track_nr = arg+1 #if arg else -1 #when there is 0 is played whole CD
             self._play(("-cdrom-device", "/dev/cdrom", f"cdda://{track_nr}"))
         else:
             self._play((arg,))

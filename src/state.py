@@ -1,5 +1,22 @@
 from os.path import expanduser
 
+class PlayingMode():
+    to_end = "to_end"
+    to_end_from_first = "to_end_from_first"
+    one_song = "one_song"
+    repeat_song = "repeat_song"
+
+    @staticmethod
+    def move(current):
+        if current == PlayingMode.to_end:
+            return PlayingMode.to_end_from_first
+        if current == PlayingMode.to_end_from_first:
+            return PlayingMode.one_song
+        if current == PlayingMode.one_song:
+            return PlayingMode.repeat_song
+        if current == PlayingMode.repeat_song:
+            return PlayingMode.to_end
+
 class State():
     def __init__(self):
         self.signal_strength = 0
@@ -23,3 +40,5 @@ class State():
         self.current_playing_time = ""
         self.total_playing_time = ""
         self.playing_ratio = 0
+        self.playing_mode = PlayingMode.to_end
+        self.random_playing = False
