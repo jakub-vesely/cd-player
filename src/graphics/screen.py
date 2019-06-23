@@ -252,7 +252,7 @@ class ListView(WidgetBase):
 class PlayingProgress(WidgetBase):
     text_offset_x = 9
     text_offset_y = 5
-    text_color = WidgetBase.color1_darkest
+    text_color = (0x00, 0x00, 0x00)
     line_offset_x = 12
     line_offset_y = 29
     line_width = 1.5
