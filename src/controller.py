@@ -31,7 +31,7 @@ class Controller():
         self.screen = Screen()
         self.state = State()
         self.wifi = Wifi()
-        self.cd_info = CdInfo()
+        self.cd_info = CdInfo(self.stop_event, self._cd_track_count_changed, self._cd_track_names_changed)
         self.bluetooth = Bluetooth()
         self.tenth_scheduler_timer = Timer(self.tenth_scheduler_timeout, self._process_tenth_scheduler_timeout)
         self.player = Player(self.stop_event, self._playing_time_changed, self._playing_filished)
@@ -42,6 +42,14 @@ class Controller():
         else:
             from src.system.desktop_io import DesktopIo
             self.io = DesktopIo(self.stop_event, self._key_pressed, self._close, self.screen.image)
+
+    def _cd_track_count_changed(self, count):
+        print(count)
+        self.request_queue.put((self._stop_playing, ))
+        self.request_queue.put((self._fill_list, count))
+
+    def _cd_track_names_changed(self, names):
+        self.request_queue.put((self._fill_list_by_cd_names, names))
 
     def _playing_filished(self):
         self.request_queue.put((self._stop_playing, ))
@@ -175,6 +183,9 @@ class Controller():
         #self.request_queue.put((self._update_folder_data, ("Ja do lesa nepojedu", "Bezi liska k taboru"), ("Song1", "Song2", "Song3", "Song4", "Song5", "Song6")))
 
     def _go_to_subfolder(self):
+        if not self.state.folder_content:
+            return False #workaround when tha app is executed first time it is called this methis because button presse is erroneously detected
+
         subfolder = self.state.folder_path + "/" + self.state.folder_content[self.state.folder_index]
         if not os.path.isdir(subfolder):
             return False
@@ -191,10 +202,14 @@ class Controller():
         max_lngth = self.state.screen_list_max_length - 2 if self.state.is_playing else self.state.screen_list_max_length
         self.state.screen_list_length = min(max_lngth, len(self.state.folder_content))
 
-    def _initialize_state(self):
-        cd_track_count =  self.cd_info.get_track_count()
+    def _fill_list_by_cd_names(self, names):
+        self.state.folder_content = names
+        return True
+
+    def _fill_list(self, cd_track_count):
         self.state.is_cd_folder = cd_track_count > 0
         if self.state.is_cd_folder:
+            self.state.folder_content = list()
             for i in range(0, cd_track_count):
                 self.state.folder_content.append(f"Track{i+1}")
         else:
@@ -202,6 +217,9 @@ class Controller():
         #self.state.folder_content = ["Track1", "Track2", "Track3", "Track4", "Track5", "Track6",]
         self._set_screen_list_length()
         return True
+
+    def _initialize_state(self):
+        return self._fill_list(0)
 
     def _adjust_screen_list(self):
         if self.state.screen_list_index >= self.state.screen_list_length:
@@ -243,7 +261,8 @@ class Controller():
         return True
 
     def _perform_initial_procedure(self):
-        self.request_queue.put((self._initialize_state,))
+        pass
+        #self.request_queue.put((self._initialize_state,))
 
     def _set_signnal_strength(self, signal_strength):
         if signal_strength != self.state.signal_strength:

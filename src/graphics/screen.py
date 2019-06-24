@@ -337,6 +337,6 @@ class Screen(WidgetBase):
         )
         list_end_y = self.list_view.draw(state, header_height + ListView.list_item_separator_height * 2) # to be separation more seeable
         if state.is_playing:
-            self.playing_progress.draw(list_end_y, state.current_playing_time, state.total_playing_time, state.playing_ratio)
+            self.playing_progress.draw(self.height - (ListView.list_item_height + ListView.list_item_separator_height) * 2, state.current_playing_time, state.total_playing_time, state.playing_ratio)
         out_image = self.image.resize((self.width, self.height), resample=Image.ANTIALIAS)
         return out_image
