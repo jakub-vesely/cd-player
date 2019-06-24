@@ -1,16 +1,17 @@
 from PIL import Image, ImageDraw, ImageFont
 from src.state import PlayingMode
-
+import colorsys
 class WidgetBase():
     text_alignment_left = "left"
     text_alignment_right = "right"
     multiplier = 2
     text_size = 14
 
-    color1_darkest = (0x35, 0x69, 0x01)
-    color1_dark = (0x4E, 0x7A, 0x21)
+
+    color1_darkest = (0x36, 0x6B, 0x01)
+    color1_dark = (0x4E, 0x7B, 0x20)
     color1_mid = (0x54, 0xA4, 0x02)
-    color1_light = (0xC9, 0xEB, 0xA6)
+    color1_light = (0xCC, 0xED, 0xAA)
     color2 = (0xA0, 0x02, 0x39)
 
     def __init__(self, imageDraw):
