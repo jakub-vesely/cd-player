@@ -3,18 +3,18 @@ from os.path import expanduser
 class PlayingMode():
     to_end = "to_end"
     to_end_from_first = "to_end_from_first"
-    one_song = "one_song"
     repeat_song = "repeat_song"
+    one_song = "one_song"
 
     @staticmethod
     def move(current):
         if current == PlayingMode.to_end:
             return PlayingMode.to_end_from_first
         if current == PlayingMode.to_end_from_first:
-            return PlayingMode.one_song
-        if current == PlayingMode.one_song:
             return PlayingMode.repeat_song
         if current == PlayingMode.repeat_song:
+            return PlayingMode.one_song
+        if current == PlayingMode.one_song:
             return PlayingMode.to_end
 
 class State():
