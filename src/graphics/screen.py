@@ -251,6 +251,8 @@ class ListView(WidgetBase):
 
 
 class PlayingProgress(WidgetBase):
+    y_size = 41
+    y_bottom_offset = 2
     text_offset_x = 9
     text_offset_y = 5
     text_color = (0x00, 0x00, 0x00)
@@ -267,8 +269,9 @@ class PlayingProgress(WidgetBase):
         self.width = width
         self.height = height
 
-    def draw(self, y, current_time, end_time, ratio):
-        self._draw_rounded_rectangle(1, y + 1, self.width - 2, self.height - 2, 5, self.line_color)
+    def draw(self, current_time, end_time, ratio):
+        y = self.height - self.y_bottom_offset - self.y_size
+        self._draw_rounded_rectangle(1, y + 1, self.width - 2, self.height - self.y_bottom_offset, 5, self.line_color)
         self._draw_rounded_rectangle(2.5, y + 2.5, self.width - 3.5, self.height - 3.5, 4.5, self.background_color)
         self._draw_text(
                 self.text_offset_x,
@@ -335,8 +338,9 @@ class Screen(WidgetBase):
         header_height = self.header.draw_header(
                 state.signal_strength, state.is_bluetooth_connected, state.header_line1, state.header_line2, repeate, one
         )
-        list_end_y = self.list_view.draw(state, header_height + ListView.list_item_separator_height * 2) # to be separation more seeable
+        self.list_view.draw(state, header_height + ListView.list_item_separator_height * 2) # to be separation more seeable
+
         if state.is_playing:
-            self.playing_progress.draw(self.height - (ListView.list_item_height + ListView.list_item_separator_height) * 2, state.current_playing_time, state.total_playing_time, state.playing_ratio)
+            self.playing_progress.draw(state.current_playing_time, state.total_playing_time, state.playing_ratio)
         out_image = self.image.resize((self.width, self.height), resample=Image.ANTIALIAS)
         return out_image
