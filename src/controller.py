@@ -44,7 +44,6 @@ class Controller():
             self.io = DesktopIo(self.stop_event, self._key_pressed, self._close, self.screen.image)
 
     def _cd_track_count_changed(self, count):
-        print(count)
         self.request_queue.put((self._stop_playing, ))
         self.request_queue.put((self._fill_list, count))
 
@@ -214,7 +213,6 @@ class Controller():
                 self.state.folder_content.append(f"Track{i+1}")
         else:
             self.state.folder_content = os.listdir(self.state.folder_path)
-        #self.state.folder_content = ["Track1", "Track2", "Track3", "Track4", "Track5", "Track6",]
         self._set_screen_list_length()
         return True
 
@@ -232,8 +230,15 @@ class Controller():
             self.state.screen_list_start -= diff
             self.state.screen_list_index += diff
 
+        end_dif = (self.state.folder_index - len(self.state.folder_content)) - (self.state.screen_list_index - self.state.screen_list_length)
+        if end_dif > 0:
+            #can happen when playing is finished
+            diff = end_dif
+            self.state.screen_list_start -= diff
+            self.state.screen_list_index += diff
+
         if self.state.screen_list_length > 2:
-            if self.state.screen_list_index == self.state.screen_list_length -1: #If index is on the end of the screen list
+            if self.state.screen_list_index == self.state.screen_list_length -1: #if index is on the end of the screen list
                 if self.state.screen_list_start + self.state.screen_list_index != len(self.state.folder_content)-1: #and index is not on the end of folder list
                     self.state.screen_list_start += 1
                     self.state.screen_list_index -= 1
@@ -259,10 +264,6 @@ class Controller():
 
         self._adjust_screen_list()
         return True
-
-    def _perform_initial_procedure(self):
-        pass
-        #self.request_queue.put((self._initialize_state,))
 
     def _set_signnal_strength(self, signal_strength):
         if signal_strength != self.state.signal_strength:
@@ -304,7 +305,6 @@ class Controller():
         self.tenth_scheduler_counter += 1
 
     def start(self):
-        self._perform_initial_procedure()
         change_performed = False
         self.tenth_scheduler_timer.start()
         while True:
