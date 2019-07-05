@@ -32,7 +32,7 @@ class LinuxCdInfo():
         return len(disc_id.split(" ")) - 3 if disc_id else 0
 
     def _get_prefix(self, request):
-        return ["cddb-tool", request, "http://freedb.freedb.org/~cddb/cddb.cgi", "5", "$(whoami)", "$(hostname)"]
+        return ["cddbcmd", "-m", "http", "cddb", request]
 
     def _get_track_names(self):
         output = list()
@@ -41,20 +41,17 @@ class LinuxCdInfo():
         query_subprocess = Popen(self._get_prefix("query") + disc_id, stdout=PIPE)
         query_output =  str(query_subprocess.communicate()[0], 'ISO-8859-1')
         query_lines = query_output.split("\n")
-        if len(query_lines) > 2: #line(s) + empty line
-            genre_line = query_lines[1]
-            genre = [genre_line.split(" ")[0], genre_line.split(" ")[1]]
-        else:
-            genre_line = query_lines[0]
-            genre = [genre_line.split(" ")[1], genre_line.split(" ")[2]]
-
-        read_subprocess = Popen(self._get_prefix("read") + genre + disc_id, stdout=PIPE)
-        read_output =  str(read_subprocess.communicate()[0], 'ISO-8859-1')
-        lines = read_output.split("\n")
-        counter = 1
-        for line in lines:
-            if line.startswith("TTITLE"):
-                line_parts = line.split("=")
-                output.append("{}-{}".format(counter, line_parts[1].strip()))
-                counter += 1
+        if not query_lines[0].startswith("No match for disc ID"):
+            line_items = query_lines[0].split(" ")
+            categ = line_items[0]
+            serial = line_items[1]
+            read_subprocess = Popen(self._get_prefix("read") + [categ,  serial], stdout=PIPE)
+            read_output =  str(read_subprocess.communicate()[0], 'ISO-8859-1')
+            lines = read_output.split("\n")
+            counter = 1
+            for line in lines:
+                if line.startswith("TTITLE"):
+                    line_parts = line.split("=")
+                    output.append("{}-{}".format(counter, line_parts[1].strip()))
+                    counter += 1
         return output

@@ -1,5 +1,5 @@
 import src.system.hat.LCD_1in44 as LCD_1in44
-import src.system.hat.LCD_Config
+import src.system.hat.LCD_Config as LCD_Config
 import RPi.GPIO as GPIO
 
 from src.system.io_base import IoBase
@@ -56,3 +56,6 @@ class HatIo(IoBase):
 
     def unregister_keyboard_callback(self):
         pass
+
+    def change_display_backlight(self, is_on):
+        GPIO.output(LCD_Config.LCD_BL_PIN, GPIO.HIGH if is_on else  GPIO.LOW)

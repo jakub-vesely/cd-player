@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 import logging
 import sys
@@ -23,6 +24,7 @@ class Controller():
     tenth_scheduler_timeout = 0.5
     tenth_scheduler_counter = 0
     queue_sleep_time = 0.1
+    display_timeout = 60
 
     def __init__(self, use_hat):
         self.use_hat = use_hat
@@ -35,7 +37,7 @@ class Controller():
         self.bluetooth = Bluetooth()
         self.tenth_scheduler_timer = Timer(self.tenth_scheduler_timeout, self._process_tenth_scheduler_timeout)
         self.player = Player(self.stop_event, self._playing_time_changed, self._playing_filished)
-
+        self.display_time = self.display_timeout
         if use_hat:
             from src.system.hat_io import HatIo
             self.io = HatIo(self.stop_event, self._key_pressed, self._close)
@@ -68,6 +70,13 @@ class Controller():
         return True
 
     def _key_pressed(self, key_code):
+        if self.display_time == 0:
+            self.io.change_display_backlight(True)
+            self.display_time = self.display_timeout
+            return False #display will be waked up nothing change
+	
+        self.display_time = self.display_timeout
+
         if key_code == IoBase.key_up:
             self.request_queue.put((self._process_key_up,)) #must be called indirectly to be processed in main thread
         elif key_code == IoBase.key_down:
@@ -202,8 +211,10 @@ class Controller():
         self.state.screen_list_length = min(max_lngth, len(self.state.folder_content))
 
     def _fill_list_by_cd_names(self, names):
-        self.state.folder_content = names
-        return True
+        if names:
+            self.state.folder_content = names
+            return True
+        return False
 
     def _fill_list(self, cd_track_count):
         self.state.is_cd_folder = cd_track_count > 0
@@ -296,6 +307,12 @@ class Controller():
         if self.tenth_scheduler_counter % self.connectivity_timeout_multiplier == 0:
             self._process_wifi()
             self._process_blutooth()
+
+        if self.display_time > 0:
+            self.display_time -= 1
+            if self.display_time == 0:
+                self.io.change_display_backlight(False)
+
 
         if self.state.is_playing and self.tenth_scheduler_counter % self.playing_progress_multiplier == 0:
             self.player.ask_fort_time()

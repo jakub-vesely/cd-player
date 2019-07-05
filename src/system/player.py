@@ -51,7 +51,7 @@ class Player():
                     self.playing_time_callback(self.current_time, self.total_time)
 
     def _play(self, commands):
-        parameters = [self.player_executable, "-slave", "-quiet"]
+        parameters = [self.player_executable, "-slave", "-quiet", "-ao", "alsa"]
         parameters += commands
         self.mplayer = Popen(parameters, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         self.current_time = 0
