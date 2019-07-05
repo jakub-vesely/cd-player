@@ -5,7 +5,7 @@ import logging
 from src.controller import Controller
 
 if len(sys.argv) == 1:
-    print(f"usage {os.path.basename(sys.argv[0])} desktop|hat")
+    print("usage {} desktop|hat".format(os.path.basename(sys.argv[0])))
     sys.exit(1)
 
 logger = logging.getLogger()

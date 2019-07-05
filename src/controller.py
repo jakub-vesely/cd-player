@@ -210,7 +210,7 @@ class Controller():
         if self.state.is_cd_folder:
             self.state.folder_content = list()
             for i in range(0, cd_track_count):
-                self.state.folder_content.append(f"Track{i+1}")
+                self.state.folder_content.append("Track{}".format(i+1))
         else:
             self.state.folder_content = os.listdir(self.state.folder_path)
         self._set_screen_list_length()

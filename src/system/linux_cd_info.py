@@ -22,7 +22,7 @@ class LinuxCdInfo():
                 if self.count:
                      self.cd_track_names_callback(self._get_track_names())
             sleep(0.5)
-        
+
     def _get_disk_id(self):
         subprocess = Popen(["cd-discid"], stdout=PIPE)
         return str( subprocess.communicate()[0], "ascii")
@@ -55,6 +55,6 @@ class LinuxCdInfo():
         for line in lines:
             if line.startswith("TTITLE"):
                 line_parts = line.split("=")
-                output.append(f"{counter}-{line_parts[1].strip()}")
+                output.append("{}-{}".format(counter, line_parts[1].strip()))
                 counter += 1
         return output

@@ -15,7 +15,7 @@ class DesktopIo(IoBase):
         self.drawing_thread.start()
 
     def key(self, event):
-        print("pressed " + f"{repr(event.char)} #{event.keycode}")
+        print("pressed " + "{} #{}".format(repr(event.char), event.keycode))
         self.keyboard_callback(event.keycode)
 
     def _drawing(self, image):
