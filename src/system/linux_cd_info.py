@@ -1,4 +1,4 @@
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE, STDOUT, DEVNULL
 from threading import Thread, Event, Lock
 from time import sleep
 
@@ -24,7 +24,7 @@ class LinuxCdInfo():
             sleep(0.5)
 
     def _get_disk_id(self):
-        subprocess = Popen(["cd-discid"], stdout=PIPE)
+        subprocess = Popen(["cd-discid"], stdout=PIPE, stderr=DEVNULL) #I do not want to display errors when cdrom is not connected
         return str( subprocess.communicate()[0], "ascii")
 
     def _get_track_count(self):
