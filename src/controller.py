@@ -28,6 +28,7 @@ class Controller():
 
     def __init__(self, use_hat):
         self.use_hat = use_hat
+        self.display_time = self.display_timeout
         self.stop_event = Event() #to be possible to stop threads
         self.request_queue = Queue() #queue of two tuples where the first element is method and the rest are the method's arguments
         self.screen = Screen()
@@ -37,7 +38,6 @@ class Controller():
         self.bluetooth = Bluetooth()
         self.tenth_scheduler_timer = Timer(self.tenth_scheduler_timeout, self._process_tenth_scheduler_timeout)
         self.player = Player(self.stop_event, self._playing_time_changed, self._playing_filished)
-        self.display_time = self.display_timeout
         if use_hat:
             from src.system.hat_io import HatIo
             self.io = HatIo(self.stop_event, self._key_pressed, self._close)
@@ -223,7 +223,10 @@ class Controller():
             for i in range(0, cd_track_count):
                 self.state.folder_content.append("Track{}".format(i+1))
         else:
-            self.state.folder_content = os.listdir(self.state.folder_path)
+            if os.path.isdir(self.state.folder_path):
+                self.state.folder_content = os.listdir(self.state.folder_path)
+            else:
+                self.state.folder_content = list()
         self._set_screen_list_length()
         return True
 
