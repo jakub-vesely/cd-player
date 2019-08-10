@@ -1,36 +1,16 @@
+from src.system.cd_info_base import CdInfoBase
 from subprocess import Popen, PIPE, STDOUT, DEVNULL
 from threading import Thread, Event, Lock
 from time import sleep
 
-class LinuxCdInfo():
-    def __init__(self, stop_event, cd_track_count_callback, cd_track_names_callback):
-        self.stop_event = stop_event
-        self.cd_track_count_callback = cd_track_count_callback
-        self.cd_track_names_callback = cd_track_names_callback
+class LinuxCdInfo(CdInfoBase):
+    def __init__(self):
+        super().__init__()
 
-        self.count = -1
-        self.thread = Thread(target=self._listening, args=[])
-        self.thread.start()
-
-
-    def _get_main_folder_path(self):
-        return ""
-
-    def get_main_folder_name(self):
-        return "CD"
-
-    def is_available(self):
-        return False
-
-    def _listening(self):
-        while not self.stop_event.isSet():
-            new_count = self._get_track_count()
-            if new_count != self.count:
-                self.count = new_count
-                self.cd_track_count_callback(new_count)
-                if self.count:
-                     self.cd_track_names_callback(self._get_track_names())
-            sleep(0.5)
+    def get_current_folder_content(self):
+        if self._get_track_count():
+            return self._get_track_names()
+        return list()
 
     def _get_disk_id(self):
         subprocess = Popen(["cd-discid"], stdout=PIPE, stderr=DEVNULL) #I do not want to display errors when cdrom is not connected

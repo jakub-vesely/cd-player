@@ -38,12 +38,12 @@ class Controller():
         self.screen = Screen()
         self.state = State()
         self.wifi = Wifi()
-        self.cd_info = CdInfo(self.stop_event, self._cd_track_count_changed, self._cd_track_names_changed)
+        #self.cd_info = CdInfo(self.stop_event, self._cd_track_count_changed, self._cd_track_names_changed)
         self.bluetooth = Bluetooth()
         self.tenth_scheduler_timer = Timer(self.tenth_scheduler_timeout, self._process_tenth_scheduler_timeout)
         self.player = Player(self.stop_event, self._playing_time_changed, self._playing_filished)
         #self.usb = Usb(self.stop_event, self._usb_path_changed)
-        self.file_systems = (MusicFileSystem(), Usb())
+        self.file_systems = (MusicFileSystem(), Usb(), CdInfo())
         if use_hat:
             from src.system.hat_io import HatIo
             self.io = HatIo(self.stop_event, self._key_pressed, self._close)
@@ -60,12 +60,12 @@ class Controller():
             if file_system.is_available():
                 self.state.folder_content.append(file_system.get_main_folder_name() + "/")
 
-    def _cd_track_count_changed(self, count):
-        self.request_queue.put((self._stop_playing, ))
-        self.request_queue.put((self._fill_list, count))
+    #def _cd_track_count_changed(self, count):
+    #    self.request_queue.put((self._stop_playing, ))
+    #    self.request_queue.put((self._fill_list, count))
 
-    def _cd_track_names_changed(self, names):
-        self.request_queue.put((self._fill_list_by_cd_names, names))
+    #def _cd_track_names_changed(self, names):
+    #    self.request_queue.put((self._fill_list_by_cd_names, names))
 
     def _playing_filished(self):
         self.request_queue.put((self._stop_playing, ))
@@ -240,11 +240,11 @@ class Controller():
         max_lngth = self.state.screen_list_max_length - 2 if self.state.is_playing else self.state.screen_list_max_length
         self.state.screen_list_length = min(max_lngth, len(self.state.folder_content))
 
-    def _fill_list_by_cd_names(self, names):
-        if names:
-            self.state.folder_content = names
-            return True
-        return False
+    #def _fill_list_by_cd_names(self, names):
+    #    if names:
+    #        self.state.folder_content = names
+    #        return True
+    #    return False
 
     def _fill_list(self, cd_track_count):
         self.state.is_cd_folder = cd_track_count > 0
