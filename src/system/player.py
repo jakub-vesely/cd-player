@@ -53,7 +53,7 @@ class Player():
                     self.playing_time_callback(self.current_time, self.total_time)
 
     def _play(self, commands):
-        parameters = [self.player_executable, "-slave", "-quiet"]
+        parameters = [self.player_executable, "-slave", "-quiet", "-cache", "2048"]
         if not sys.platform.startswith("win"): #alsa is not available for win. I want to force this channel because I use bluetooth over alsa
             parameters += ["-ao", "alsa"]
         parameters += commands

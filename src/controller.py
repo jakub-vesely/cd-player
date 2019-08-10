@@ -366,6 +366,6 @@ class Controller():
                 self.tenth_scheduler_timer.cancel()
                 break
 
-            if self.request_queue.empty() and change_performed:
+            if self.request_queue.empty() and change_performed and self.display_time > 0:
                 self.io.bitblt(self.screen.render(self.state))
                 change_performed = False
