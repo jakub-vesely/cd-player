@@ -251,7 +251,8 @@ class ListView(WidgetBase):
     def draw(self, state, start_y):
         y = start_y
         for local_index, item in enumerate(state.folder_content[state.screen_list_start: state.screen_list_start + state.screen_list_length]):
-            self._draw_list_item(y, item, local_index == state.screen_list_index, item.endswith("/"))
+            is_folder = item.endswith("/")
+            self._draw_list_item(y, item[:-1] if is_folder else item, local_index == state.screen_list_index, is_folder)
             y = y + self.list_item_separator_height + self.list_item_height
         return y
 
