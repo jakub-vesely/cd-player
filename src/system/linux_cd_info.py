@@ -13,6 +13,15 @@ class LinuxCdInfo():
         self.thread.start()
 
 
+    def _get_main_folder_path(self):
+        return ""
+
+    def get_main_folder_name(self):
+        return "CD"
+
+    def is_available(self):
+        return False
+
     def _listening(self):
         while not self.stop_event.isSet():
             new_count = self._get_track_count()
