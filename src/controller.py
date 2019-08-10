@@ -9,14 +9,18 @@ from src.system.io_base import IoBase
 from src.system.player import Player
 from src.graphics.screen import Screen
 from src.state import State, PlayingMode
+from src.system.music_file_system import MusicFileSystem
+
 if sys.platform.startswith("win"):
     from src.system.win_cd_info import WinCdInfo as CdInfo
     from src.system.win_wifi import WinWifi as Wifi
     from src.system.win_bluetooth import WinBluettot as Bluetooth
+    from src.system.win_usb_file_system import WinUsbFileSystem as Usb
 else:
     from src.system.linux_cd_info import LinuxCdInfo as CdInfo
     from src.system.linux_wifi import LinuxWifi as Wifi
     from src.system.linux_bluetooth import LinuxBluettot as Bluetooth
+    from src.system.linux_usb_file_system import LinuxUsbFileSystem as Usb
 
 class Controller():
     connectivity_timeout_multiplier = 2
@@ -38,12 +42,23 @@ class Controller():
         self.bluetooth = Bluetooth()
         self.tenth_scheduler_timer = Timer(self.tenth_scheduler_timeout, self._process_tenth_scheduler_timeout)
         self.player = Player(self.stop_event, self._playing_time_changed, self._playing_filished)
+        #self.usb = Usb(self.stop_event, self._usb_path_changed)
+        self.file_systems = (MusicFileSystem(), Usb())
         if use_hat:
             from src.system.hat_io import HatIo
             self.io = HatIo(self.stop_event, self._key_pressed, self._close)
         else:
             from src.system.desktop_io import DesktopIo
             self.io = DesktopIo(self.stop_event, self._key_pressed, self._close, self.screen.image)
+
+        self._fill_list(0)
+
+    def _fill_folder_content_by_file_system_names(self):
+        self.state.folder_content = list()
+        self._go_to_first_item()
+        for file_system in self.file_systems:
+            if file_system.is_available():
+                self.state.folder_content.append(file_system.get_main_folder_name() + "/")
 
     def _cd_track_count_changed(self, count):
         self.request_queue.put((self._stop_playing, ))
@@ -74,7 +89,7 @@ class Controller():
             self.io.change_display_backlight(True)
             self.display_time = self.display_timeout
             return False #display will be waked up nothing change
-	
+
         self.display_time = self.display_timeout
 
         if key_code == IoBase.key_up:
@@ -124,7 +139,9 @@ class Controller():
         if self.state.is_cd_folder:
             arg = self.state.folder_index
         else:
-            arg = self.state.folder_path + "/" + self.state.folder_content[self.state.folder_index]
+            if not self.state.file_system:
+                return False
+            arg = self.state.file_system.get_current_folder_path() + "/" + self.state.folder_content[self.state.folder_index]
             if not os.path.isfile(arg):
                 return False #dir is not playable
 
@@ -175,9 +192,8 @@ class Controller():
         self.state.screen_list_start = 0
         self.state.screen_list_index = 0
 
-    def _change_folder(self, new_path):
-        self.state.folder_path = new_path
-        self.state.folder_content = os.listdir(new_path)
+    def _change_folder(self):
+        self.state.folder_content = self.state.file_system.get_current_folder_content()
         self._go_to_first_item()
         self.state.screen_list_length = self.state.screen_list_max_length
 
@@ -188,22 +204,36 @@ class Controller():
     def _process_key_back(self):
         self._stop_playing()
         return True
-        #self.request_queue.put((self._update_folder_data, ("Ja do lesa nepojedu", "Bezi liska k taboru"), ("Song1", "Song2", "Song3", "Song4", "Song5", "Song6")))
 
     def _go_to_subfolder(self):
         if not self.state.folder_content:
-            return False #workaround when tha app is executed first time it is called this methis because button presse is erroneously detected
+            return False #workaround when tha app is executed first time it is called this method because button press is erroneously detected
 
-        subfolder = self.state.folder_path + "/" + self.state.folder_content[self.state.folder_index]
-        if not os.path.isdir(subfolder):
+        item_name = self.state.folder_content[self.state.folder_index]
+        if not item_name.endswith("/"): #folder contains / as a last character
             return False
-        self._change_folder(subfolder)
+
+        if self.state.file_system:
+            if not self.state.file_system.go_to_subfolder(item_name[:-1]): #remove folder indicator
+                return False
+        else:
+            for file_system in self.file_systems:
+                if file_system.get_main_folder_name() == item_name[:-1]: #remove /
+                    file_system.reset()
+                    self.state.file_system = file_system
+                    break
+
+        self._change_folder()
         return True
 
     def _go_to_upper_folder(self):
-        if self.state.folder_path == self.state.home_folder:
+        if not self.state.file_system:
             return False
-        self._change_folder(os.path.split(self.state.folder_path)[0])
+        if not self.state.file_system.go_to_upper_folder():
+            self.state.file_system = None
+            self._fill_list(False)
+        else:
+            self._change_folder()
         return True
 
     def _set_screen_list_length(self):
@@ -222,16 +252,15 @@ class Controller():
             self.state.folder_content = list()
             for i in range(0, cd_track_count):
                 self.state.folder_content.append("Track{}".format(i+1))
+        elif self.state.file_system:
+            self.state.folder_content = self.state.file_system.get_current_folder_content()
         else:
-            if os.path.isdir(self.state.folder_path):
-                self.state.folder_content = os.listdir(self.state.folder_path)
-            else:
-                self.state.folder_content = list()
+            self._fill_folder_content_by_file_system_names()
         self._set_screen_list_length()
         return True
 
-    def _initialize_state(self):
-        return self._fill_list(0)
+    #def _initialize_state(self):
+    #    return self._fill_list(0)
 
     def _adjust_screen_list(self):
         if self.state.screen_list_index >= self.state.screen_list_length:
@@ -244,12 +273,12 @@ class Controller():
             self.state.screen_list_start -= diff
             self.state.screen_list_index += diff
 
-        end_dif = (self.state.folder_index - len(self.state.folder_content)) - (self.state.screen_list_index - self.state.screen_list_length)
-        if end_dif > 0:
-            #can happen when playing is finished
-            diff = end_dif
-            self.state.screen_list_start -= diff
-            self.state.screen_list_index += diff
+        end_diff = (self.state.folder_index - len(self.state.folder_content)) - (self.state.screen_list_index - self.state.screen_list_length)
+        if end_diff > 0: #can happen when playing is finished
+            for _i in range(0, end_diff):
+                if self.state.screen_list_start - 1 > 0: #number of items can be less than window length
+                    self.state.screen_list_start -= 1
+                    self.state.screen_list_index += 1
 
         if self.state.screen_list_length > 2:
             if self.state.screen_list_index == self.state.screen_list_length -1: #if index is on the end of the screen list

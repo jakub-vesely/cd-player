@@ -54,3 +54,6 @@ class DesktopIo(IoBase):
         self.image = image
         self.image_lock.release()
         self.redraw.set()
+
+    def change_display_backlight(self, is_on):
+        pass

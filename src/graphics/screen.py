@@ -42,14 +42,18 @@ class WidgetBase():
         self._draw_pieslice(x2 - diameter, y2 - diameter, diameter, 0, 90, color)
         self._draw_pieslice(x1, y2 - diameter, diameter, 90, 180, color)
 
-    def _draw_text(self, x, y, text, color, alignment, text_size=None):
+    def _draw_text(self, x, y, text, color, alignment, text_size=None, underline=False):
         size = text_size if text_size else self.text_size
         font = ImageFont.truetype("DejaVuSansCondensed.ttf", size * self.multiplier, encoding="unic")
         x, y = self._multiply((x ,y))
+        width, _height = self.imageDraw.textsize(text, font=font)
         if alignment == self.text_alignment_right:
-            width, _height = self.imageDraw.textsize(text, font=font)
             x = x - width
         self.imageDraw.text((x, y), text, font=font, fill=color)
+        print(width)
+        line_y = y + size * self.multiplier
+        if underline:
+            self.imageDraw.line((x, line_y , x + width, line_y), color, 1 * self.multiplier)
 
 class HeaderWidgetBase(WidgetBase):
     background_color = WidgetBase.color1_darkest
@@ -220,16 +224,18 @@ class ListView(WidgetBase):
     list_text_color_selected = (0xff, 0xff, 0xff)
     list_item_separator_height = 1
 
-    def _draw_item_label(self, item_y, label, color):
+    def _draw_item_label(self, item_y, label, color, underline):
         self._draw_text(
                 self.list_item_offset_x + self.list_text_offset_x,
                 item_y + self.list_text_offset_y,
                 label,
                 color,
-                self.text_alignment_left
+                self.text_alignment_left,
+                self.text_size,
+                underline
         )
 
-    def _draw_list_item(self, y, label, selected):
+    def _draw_list_item(self, y, label, selected, underline):
         if selected:
             self._draw_rounded_rectangle(
                     self.list_item_offset_x,
@@ -240,12 +246,12 @@ class ListView(WidgetBase):
                     self.list_item_color
             )
 
-        self._draw_item_label(y, label, self.list_text_color_selected if selected else self.list_text_color_normal)
+        self._draw_item_label(y, label, self.list_text_color_selected if selected else self.list_text_color_normal, underline)
 
     def draw(self, state, start_y):
         y = start_y
         for local_index, item in enumerate(state.folder_content[state.screen_list_start: state.screen_list_start + state.screen_list_length]):
-            self._draw_list_item(y, item, local_index == state.screen_list_index)
+            self._draw_list_item(y, item, local_index == state.screen_list_index, item.endswith("/"))
             y = y + self.list_item_separator_height + self.list_item_height
         return y
 

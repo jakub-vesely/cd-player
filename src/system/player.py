@@ -1,3 +1,4 @@
+import sys
 import logging
 from subprocess import Popen, PIPE, STDOUT
 from threading import Event, Thread
@@ -32,7 +33,8 @@ class Player():
     def _output_processor(self):
         while not self.stop_event.isSet() and not self.stop_listening_event.isSet():
             line =str(self.mplayer.stdout.readline(), "ascii")
-            logging.debug("mplayer: {}".format(line))
+            if line:
+                logging.debug("mplayer: {}".format(line))
             if line.startswith('Exiting... (End of file)'):
                 self.mplayer = None
                 self.listening_thread = None
@@ -51,7 +53,9 @@ class Player():
                     self.playing_time_callback(self.current_time, self.total_time)
 
     def _play(self, commands):
-        parameters = [self.player_executable, "-slave", "-quiet", "-ao", "alsa"]
+        parameters = [self.player_executable, "-slave", "-quiet"]
+        if not sys.platform.startswith("win"): #alsa is not available for win. I want to force this channel because I use bluetooth over alsa
+            parameters += ["-ao", "alsa"]
         parameters += commands
         self.mplayer = Popen(parameters, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         self.current_time = 0

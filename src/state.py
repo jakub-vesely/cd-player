@@ -22,9 +22,8 @@ class State():
         self.signal_strength = 0
         self.is_bluetooth_connected = False
 
-        self.home_folder = expanduser("~") + "/Music"
-        self.folder_path = self.home_folder
         self.folder_content = []
+        self.file_system = None
         self.folder_index = 0
         self.is_cd_folder = False
 
