@@ -85,6 +85,7 @@ class Player():
 
     def stop_if_playing(self):
         self._write_to_mplayer(b'stop\n')
+        time.sleep(0.1)
 
     def _stop_mplayer(self):
         if self.listening_thread:
