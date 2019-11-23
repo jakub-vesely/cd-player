@@ -52,6 +52,8 @@ class Player():
                     self.total_time = new_total_time
                     self.playing_time_callback(self.current_time, self.total_time)
 
+    def start_mplayer(self):
+        pass
     def _play(self, commands):
         parameters = [self.player_executable, "-slave", "-quiet", "-cache", "2048"]
         if not sys.platform.startswith("win"): #alsa is not available for win. I want to force this channel because I use bluetooth over alsa
@@ -69,7 +71,11 @@ class Player():
 
         if is_cd_track:
             track_nr = arg+1 #if arg else -1 #when there is 0 is played whole CD
-            self._play(("-cdrom-device", "/dev/cdrom", "cdda://{}".format(track_nr)))
+            if sys.platform.startswith("win"):
+                device = "D:" #FIXME: hardcoded
+            else:
+                device = "/dev/cdrom"
+            self._play(("-cdrom-device", {}, "cdda://{}".format(device, track_nr)))
         else:
             self._play((arg,))
 

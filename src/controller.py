@@ -60,13 +60,6 @@ class Controller():
             if file_system.is_available():
                 self.state.folder_content.append(file_system.get_main_folder_name() + "/")
 
-    #def _cd_track_count_changed(self, count):
-    #    self.request_queue.put((self._stop_playing, ))
-    #    self.request_queue.put((self._fill_list, count))
-
-    #def _cd_track_names_changed(self, names):
-    #    self.request_queue.put((self._fill_list_by_cd_names, names))
-
     def _playing_filished(self):
         self.request_queue.put((self._stop_playing, ))
         self.request_queue.put((self._move_to_next_and_play,))
@@ -97,7 +90,7 @@ class Controller():
         elif key_code == IoBase.key_down:
             self.request_queue.put((self._go_to_next_item,)) #must be called indirectly to be processed in main thread
         elif key_code == IoBase.key_select:
-            self.request_queue.put((self._start_playing,))
+            self.request_queue.put((self._process_key_select,))
         elif key_code == IoBase.key_left:
             self.request_queue.put((self._process_key_left,))
         elif key_code == IoBase.key_right:
@@ -136,7 +129,8 @@ class Controller():
         return self._start_playing()
 
     def _start_playing(self):
-        if self.state.is_cd_folder:
+        is_cd_folder = isinstance(self.state.file_system,  CdInfo)
+        if is_cd_folder:
             arg = self.state.folder_index
         else:
             if not self.state.file_system:
@@ -149,7 +143,7 @@ class Controller():
         self.state.is_playing = True
         self._set_screen_list_length()
         self._adjust_screen_list()
-        self.player.play(arg, self.state.is_cd_folder)
+        self.player.play(arg, is_cd_folder)
         return True
 
     def _process_key_left(self):
@@ -185,7 +179,9 @@ class Controller():
         return True
 
     def _process_key_select(self):
-        return self._start_playing()
+        if not self.state.is_playing and not self._go_to_subfolder():
+            return self._start_playing()
+        return True
 
     def _go_to_first_item(self):
         self.state.folder_index = 0
@@ -202,8 +198,11 @@ class Controller():
         return True
 
     def _process_key_back(self):
-        self._stop_playing()
-        return True
+        if self.state.is_playing:
+            self._stop_playing()
+            return True
+        else:
+            return self._go_to_upper_folder()
 
     def _go_to_subfolder(self):
         if not self.state.folder_content:
@@ -231,7 +230,7 @@ class Controller():
             return False
         if not self.state.file_system.go_to_upper_folder():
             self.state.file_system = None
-            self._fill_list(False)
+            self._fill_list(0)
         else:
             self._change_folder()
         return True
@@ -240,27 +239,13 @@ class Controller():
         max_lngth = self.state.screen_list_max_length - 2 if self.state.is_playing else self.state.screen_list_max_length
         self.state.screen_list_length = min(max_lngth, len(self.state.folder_content))
 
-    #def _fill_list_by_cd_names(self, names):
-    #    if names:
-    #        self.state.folder_content = names
-    #        return True
-    #    return False
-
     def _fill_list(self, cd_track_count):
-        self.state.is_cd_folder = cd_track_count > 0
-        if self.state.is_cd_folder:
-            self.state.folder_content = list()
-            for i in range(0, cd_track_count):
-                self.state.folder_content.append("Track{}".format(i+1))
-        elif self.state.file_system:
+        if self.state.file_system:
             self.state.folder_content = self.state.file_system.get_current_folder_content()
         else:
             self._fill_folder_content_by_file_system_names()
         self._set_screen_list_length()
         return True
-
-    #def _initialize_state(self):
-    #    return self._fill_list(0)
 
     def _adjust_screen_list(self):
         if self.state.screen_list_index >= self.state.screen_list_length:
