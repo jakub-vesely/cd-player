@@ -220,6 +220,7 @@ class Controller():
                 if file_system.get_main_folder_name() == item_name[:-1]: #remove /
                     file_system.reset()
                     self.state.file_system = file_system
+                    self.player.start_mplayer(isinstance(self.state.file_system,  CdInfo)) #mplayer is started in required mode to be start of song playing faster
                     break
 
         self._change_folder()
