@@ -35,13 +35,7 @@ class Player():
             line =str(self.mplayer.stdout.readline(), "ascii")
             if line:
                 logging.debug("mplayer: {}".format(line))
-            if line.startswith('Exiting... (End of file)'):
-                self.mplayer = None
-                self.listening_thread = None
-                self.stop_listening_event.clear()
-                self.playing_filished_callback()
-                return
-            elif line.startswith(self.ans_time_pos_porefix):
+            if line.startswith(self.ans_time_pos_porefix):
                 new_current_time = self._get_time(line, self.ans_time_pos_porefix)
                 if self.current_time != new_current_time:
                     self.current_time = new_current_time
@@ -51,12 +45,15 @@ class Player():
                 if self.total_time != new_total_time:
                     self.total_time = new_total_time
                     self.playing_time_callback(self.current_time, self.total_time)
+            elif line.startswith("EOF code: 1"):
+                self.stop_listening_event.clear()
+                self.playing_filished_callback()
 
     def start_mplayer(self, is_cd_folder):
         if self.mplayer:
             self._stop_mplayer()
 
-        parameters = [self.player_executable, "-slave", "-quiet", "-cache", "2048", "-idle"]
+        parameters = [self.player_executable, "-slave", "-quiet", "-cache", "2048", "-idle", "-v"]
         if not sys.platform.startswith("win"): #alsa is not available for win. I want to force this channel because I use bluetooth over alsa
             parameters += ["-ao", "alsa"]
         if is_cd_folder:
@@ -85,7 +82,7 @@ class Player():
 
     def stop_if_playing(self):
         self._write_to_mplayer(b'stop\n')
-        time.sleep(0.1)
+        time.sleep(0.1) #wait to stop is processed
 
     def _stop_mplayer(self):
         if self.listening_thread:

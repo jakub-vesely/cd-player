@@ -50,7 +50,6 @@ class WidgetBase():
         if alignment == self.text_alignment_right:
             x = x - width
         self.imageDraw.text((x, y), text, font=font, fill=color)
-        print(width)
         line_y = y + size * self.multiplier
         if underline:
             self.imageDraw.line((x, line_y , x + width, line_y), color, 1 * self.multiplier)
