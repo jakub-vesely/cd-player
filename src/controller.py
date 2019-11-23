@@ -179,8 +179,11 @@ class Controller():
         return True
 
     def _process_key_select(self):
-        if not self.state.is_playing and not self._go_to_subfolder():
-            return self._start_playing()
+        if self.state.is_playing:
+            return self._start_playing() #next song
+        elif not self._go_to_subfolder():
+            return self._start_playing() #it is file
+
         return True
 
     def _go_to_first_item(self):
