@@ -8,8 +8,13 @@ class LinuxCdInfo(CdInfoBase):
         super().__init__()
 
     def get_current_folder_content(self):
-        if self._get_track_count():
-            return self._get_track_names()
+        track_count = self._get_track_count()
+        if track_count:
+            track_names = self._get_track_names()
+            if not track_names:
+                for i in range(track_count):
+                    track_names.append(f"Track{i+1}")
+            return track_names
         return list()
 
     def _get_disk_id(self):
