@@ -1,3 +1,4 @@
+import logging
 from src.system.cd_info_base import CdInfoBase
 from subprocess import Popen, PIPE, STDOUT, DEVNULL
 from threading import Thread, Event, Lock
@@ -37,6 +38,10 @@ class LinuxCdInfo(CdInfoBase):
         query_lines = query_output.split("\n")
         if not query_lines[0].startswith("No match for disc ID"):
             line_items = query_lines[0].split(" ")
+            if len(line_items) < 2:
+                logging.error("unexpected line count in CD info")
+                return output
+
             categ = line_items[0]
             serial = line_items[1]
             read_subprocess = Popen(self._get_prefix("read") + [categ,  serial], stdout=PIPE)

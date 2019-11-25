@@ -201,6 +201,10 @@ class Controller():
         return True
 
     def _process_key_back(self):
+        if not self.state.file_system and not self.bluetooth.is_connected():
+            print("bluetooth connect required")
+            self.bluetooth.requie_connetion()
+
         if self.state.is_playing:
             self._stop_playing()
             return True
@@ -352,6 +356,7 @@ class Controller():
     def start(self):
         change_performed = False
         self.tenth_scheduler_timer.start()
+        self.bluetooth.start_connection_threead()
         while True:
             request = self.request_queue.get(True, None)
             request_method = request[0]

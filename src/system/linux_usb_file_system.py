@@ -16,7 +16,6 @@ class LinuxUsbFileSystem(RealFileSystemBase):
     def _mount(self, device):
         subprocess = Popen(["mount", "-t", "vfat", device, "/mnt/usb/"], stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         stdout = subprocess.communicate()[0]
-        print(stdout)
         return len(stdout) == 0
 
     def is_available(self):
