@@ -28,7 +28,7 @@ class Controller():
     tenth_scheduler_timeout = 0.5
     tenth_scheduler_counter = 0
     queue_sleep_time = 0.1
-    display_timeout = 60
+    display_timeout = 120
 
     def __init__(self, use_hat):
         self.use_hat = use_hat
