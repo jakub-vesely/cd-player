@@ -36,7 +36,7 @@ class LinuxCdInfo(CdInfoBase):
     def _get_track_names_from_cd_text(self):
         subprocess = Popen(["cd-info"], stdout=PIPE, stderr=DEVNULL) #I do not want to display errors when cdrom is not connected
         try:
-            stdout = str( subprocess.communicate(timeout=10)[0], "ascii") #10 sec should be enough for the case when data is available
+            stdout = str( subprocess.communicate(timeout=10)[0], "utf-8") #10 sec should be enough for the case when data is available
         except TimeoutExpired:
             subprocess.kill()
             return list()
