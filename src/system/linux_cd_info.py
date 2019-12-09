@@ -8,31 +8,31 @@ class LinuxCdInfo(CdInfoBase):
         super().__init__()
 
     def get_current_folder_content(self):
-        track_count = self._get_track_count()
+        disc_id = self._get_disc_id()
+        track_count = self._get_track_count(disc_id)
         if track_count:
-            track_names = self._get_track_names()
+            track_names = self._get_track_names(disc_id)
             if not track_names:
                 for i in range(track_count):
                     track_names.append(f"Track{i+1}")
             return track_names
         return list()
 
-    def _get_disk_id(self):
+    def _get_disc_id(self):
         subprocess = Popen(["cd-discid"], stdout=PIPE, stderr=DEVNULL) #I do not want to display errors when cdrom is not connected
         return str( subprocess.communicate()[0], "ascii")
 
-    def _get_track_count(self):
-        disc_id = self._get_disk_id()
+    def _get_track_count(self, disc_id):
         return len(disc_id.split(" ")) - 3 if disc_id else 0
 
     def _get_prefix(self, request):
         return ["cddbcmd", "-m", "http", "cddb", request]
 
-    def _get_track_names(self):
+    def _get_track_names(self, disc_id):
         output = list()
-        disc_id = self._get_disk_id().strip().split(" ")
+        processed_disc_id = disc_id.strip().split(" ")
 
-        query_subprocess = Popen(self._get_prefix("query") + disc_id, stdout=PIPE)
+        query_subprocess = Popen(self._get_prefix("query") + processed_disc_id, stdout=PIPE)
         query_output =  str(query_subprocess.communicate()[0], 'ISO-8859-1')
         query_lines = query_output.split("\n")
         if not query_lines[0].startswith("No match for disc ID"):
