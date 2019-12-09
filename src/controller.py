@@ -53,12 +53,12 @@ class Controller():
 
         self._fill_list(0)
 
-    def _fill_folder_content_by_file_system_names(self):
-        self.state.folder_content = list()
-        self._go_to_first_item()
+    def _get_file_system_names(self):
+        names = list()
         for file_system in self.file_systems:
             if file_system.is_available():
-                self.state.folder_content.append(file_system.get_main_folder_name() + "/")
+                names.append(file_system.get_main_folder_name() + "/")
+        return names
 
     def _playing_filished(self):
         self.request_queue.put((self._stop_playing, ))
@@ -245,9 +245,14 @@ class Controller():
 
     def _fill_list(self, cd_track_count):
         if self.state.file_system:
-            self.state.folder_content = self.state.file_system.get_current_folder_content()
+            content = self.state.file_system.get_current_folder_content()
         else:
-            self._fill_folder_content_by_file_system_names()
+            content = self._get_file_system_names()
+            if content == self.state.folder_content:
+                return False #nothing to change
+            self._go_to_first_item()
+
+        self.state.folder_content = content
         self._set_screen_list_length()
         return True
 
@@ -328,6 +333,8 @@ class Controller():
         if self.tenth_scheduler_counter % self.connectivity_timeout_multiplier == 0:
             self._process_wifi()
             self._process_blutooth()
+            if not self.state.file_system:
+                self.request_queue.put((self._fill_list, 0))
 
         if self.display_time > 0:
             self.display_time -= 1
